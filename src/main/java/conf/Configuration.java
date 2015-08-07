@@ -38,9 +38,10 @@ public class Configuration {
 	public int   m_crossValidationIterations;
 	public int   m_crossValidationFolds;
 	
-	public String m_sortAttributeName;
-	public String m_sliceAttributeName;
-	public String m_evaluationMeasure;
+	public String   m_sortAttributeName;
+	public String   m_sliceAttributeName;
+	public String[] m_attributesToRemove;
+	public String   m_evaluationMeasure;
 	
 	public String[] m_featureSelectionDatasetSlices;
 	public String[] m_crossValidationDatasetSlices;
@@ -103,6 +104,7 @@ public class Configuration {
 //		m_sliceAttributeName = "season";
 		m_sortAttributeName  = null;
 		m_sliceAttributeName = null;
+		m_attributesToRemove = new String[0];
 
 		// can choose between:
 		// - accuracy
@@ -281,6 +283,16 @@ public class Configuration {
 		    		break;
 		    	case "n_cross_validation_folds":  
 		    		m_crossValidationFolds = Integer.parseInt(value);
+		    		break;
+		    	case "attributes_to_remove":
+		    		final String[] vals = value.split(","); 
+		    		final int nVals = vals.length;
+		    		final String[] attributesToRemove = new String[nVals];
+		    		for (int i = 0; i < nVals; i++) {
+		    			final String attribute = vals[i].trim();
+		    			attributesToRemove[i] = attribute;
+		    		}
+		    		m_attributesToRemove = attributesToRemove;
 		    		break;
 		    	case "sort_attribute_name":  
 		    		m_sortAttributeName = value;
