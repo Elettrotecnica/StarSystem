@@ -169,7 +169,7 @@ public class Utils {
 		final Attribute attribute = data.attribute(name);
 		if (attribute != null) {
 			final Remove r = new Remove();
-			r.setAttributeIndices("" + (data.attribute(name).index() + 1));
+			r.setAttributeIndices("" + (attribute.index() + 1));
 			return useFilter(data, r);
 		}
 		System.out.println("Warning, couldn't remove missing attribute " + name + " in dataset.");
