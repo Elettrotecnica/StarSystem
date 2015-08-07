@@ -138,7 +138,8 @@ public class DatasetSplitter {
 			Instances dataset = Utils.readFile(datasetFile);
 			// Remove unused attributes
 			for (final String attToRemove : m_conf.m_attributesToRemove) {
-				dataset = Utils.removeAttribute(dataset,attToRemove);
+				if (dataset.attribute(attToRemove) != null)
+					dataset = Utils.removeAttribute(dataset,attToRemove);
 			}
 			final Instances[] splittedDataset = assignSlices(dataset);
 			Utils.saveInstances(removeSnoopingAttributes(sort(splittedDataset[0])), featureSelectionDatasetFile(datasetName));
