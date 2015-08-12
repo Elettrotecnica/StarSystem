@@ -61,15 +61,24 @@ public class Utils {
 		return join(Arrays.asList(list), separator);
 	}
 	
-	public static File getEmptyDir (final String dirPath) {
+	public static File requireDir (
+			final String dirPath, final boolean empty) {
 		final File dir = new File(dirPath);
 		if (dir.exists()) {
+			if (!empty) return dir; 
 			if (dir.isDirectory()) {
-				for(File f : dir.listFiles()) {f.delete();}
+				// Delete every non-hidden file
+				for(File f : dir.listFiles()) {
+					if (!f.isHidden()) {f.delete();}}
 				return dir;
 			} else {dir.delete();}
 		}; dir.mkdir();
 		return dir;
+	}
+	
+	public static File requireDir (
+			final String dirPath) {
+		return requireDir(dirPath, true);
 	}
 	
 	public static Instances reorderInstances (

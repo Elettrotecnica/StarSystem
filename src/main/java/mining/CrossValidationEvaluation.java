@@ -59,6 +59,10 @@ public class CrossValidationEvaluation {
 		
 		final String[] resultsFolderTokens = {m_conf.m_baseFolder, m_conf.m_crossValidationFolder, m_conf.m_resultsFolder, ""};
 		m_resultsFolder = Utils.join(resultsFolderTokens, m_conf.m_fileSeparator);
+		
+		// Empty results dirs
+		Utils.requireDir(m_datasetFolder);
+		Utils.requireDir(m_resultsFolder);
 	}    
 
 	private File getOutputFile(final String dataset, final String nFeatures) {
@@ -181,7 +185,6 @@ public class CrossValidationEvaluation {
 		final Experiment exp = new Experiment();
 		
         // Imposto i dataset. Faccio subito perche' se non ne trovo ho gia' finito.
-//        final DefaultListModel<File> model = new DefaultListModel<File>();
         final DefaultListModel<File> model = new DefaultListModel<File>();
         final String regexp = "^" + competition + ".*features" + nFeatures + ".arff$";
 		final FilenameFilter fileFilter = Utils.getFileFilter(regexp);

@@ -22,6 +22,8 @@ public class FeatureSelection {
 	
 	final Configuration m_conf;
 	
+	final String m_resultsPath;
+	
 	final ExecutorService m_threadExecutor;
 	
 	final String m_filtersNames;
@@ -63,6 +65,9 @@ public class FeatureSelection {
 			}
 		}
 		m_wrappersNames = wrappersNames;
+		
+		m_resultsPath = resultsPath();
+		Utils.requireDir(m_resultsPath);
 	}
 	
 	
@@ -150,7 +155,7 @@ public class FeatureSelection {
 	}
 	
 	private String getOutFileName(final String dataset, final int nFeatures) {
-		return resultsPath() + m_conf.m_fileSeparator 
+		return m_resultsPath + m_conf.m_fileSeparator 
 		+ dataset 
 		+ m_filtersNames
 		+ m_wrappersNames
@@ -214,7 +219,6 @@ public class FeatureSelection {
 			competitionWrappersRankings.add(wrappersRankingsList);
 		}
 
-		Utils.getEmptyDir(resultsPath());
 		for(int i = 0; i < m_conf.m_nDatasets; i++) {
 			final String dataset = m_conf.m_datasetNames[i];
 			final List<Future<double[][]>> wrappersRankingsList = competitionWrappersRankings.get(i);

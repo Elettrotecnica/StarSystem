@@ -26,12 +26,27 @@ public class DatasetSplitter {
 	// shared during all the analysis
 	final Configuration m_conf;
 	
+	final String m_featureSelectionDatasetPath;
+	final String m_crossValidationDatasetPath;
+	final String m_testSetDatasetPath;
+	final String m_featureSelectionResultsPath;
+	
 	public DatasetSplitter() {
 		this(new Configuration());
 	}
 	
 	public DatasetSplitter(final Configuration conf) {
 		m_conf = conf;
+		m_featureSelectionDatasetPath = featureSelectionDatasetPath();
+		m_crossValidationDatasetPath  = crossValidationDatasetPath();
+		m_testSetDatasetPath          = testSetDatasetPath();
+		m_featureSelectionResultsPath = featureSelectionResultsPath();
+		
+		// Empty results dirs
+		Utils.requireDir(m_featureSelectionDatasetPath);
+		Utils.requireDir(m_crossValidationDatasetPath);
+		Utils.requireDir(m_testSetDatasetPath);
+		Utils.requireDir(m_featureSelectionResultsPath);
 	}
 	
 	//
@@ -43,18 +58,33 @@ public class DatasetSplitter {
 		return Utils.join(pathTokens, m_conf.m_fileSeparator);
 	}
 	
+	private String featureSelectionDatasetPath() {
+		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_featureSelectionFolder};
+		return Utils.join(pathTokens, m_conf.m_fileSeparator);
+	}
+	
 	private String featureSelectionDatasetFile(final String datasetName) {
-		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_featureSelectionFolder, datasetName + ".arff"};
+		final String[] pathTokens = {m_featureSelectionDatasetPath, datasetName + ".arff"};
 		return Utils.join(pathTokens, m_conf.m_fileSeparator);
 	}
 
+	private String crossValidationDatasetPath() {
+		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_crossValidationFolder};
+		return Utils.join(pathTokens, m_conf.m_fileSeparator);
+	}
+	
 	private String crossValidationDatasetFile(final String datasetName) {
-		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_crossValidationFolder, datasetName + ".arff"};
+		final String[] pathTokens = {m_crossValidationDatasetPath, datasetName + ".arff"};
 		return Utils.join(pathTokens, m_conf.m_fileSeparator);
 	}
 
+	private String testSetDatasetPath() {
+		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_testSetFolder};
+		return Utils.join(pathTokens, m_conf.m_fileSeparator);
+	}
+	
 	private String testSetDatasetFile(final String datasetName) {
-		final String[] pathTokens = {m_conf.m_baseFolder, m_conf.m_datasetFolder, m_conf.m_testSetFolder, datasetName + ".arff"};
+		final String[] pathTokens = {m_testSetDatasetPath, datasetName + ".arff"};
 		return Utils.join(pathTokens, m_conf.m_fileSeparator);
 	}
 
@@ -197,7 +227,7 @@ public class DatasetSplitter {
 			final Instances testDataset = Utils.readFile(testSetDatasetFile(datasetName));
 			
 			// Take the folder with feature selection results...
-	        final File dir = new File(featureSelectionResultsPath());
+			final File dir = new File(featureSelectionResultsPath());
 	        final File[] datasetFiles = dir.listFiles(fileFilter);
 			for (final File featureSet: datasetFiles) {
 				if (featureSet.isFile() && !featureSet.isHidden()) {

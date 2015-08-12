@@ -42,6 +42,9 @@ public class TestSetEvaluation {
     	
     	final String[] resultsFolderTokens = {m_conf.m_baseFolder, m_conf.m_testSetFolder, m_conf.m_resultsFolder, ""};
 		m_resultsFolder = Utils.join(resultsFolderTokens, m_conf.m_fileSeparator);
+		
+		// Empty results folders
+		Utils.requireDir(m_resultsFolder);
     }
     
     public TestSetEvaluation(Configuration conf) {
