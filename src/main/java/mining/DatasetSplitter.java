@@ -46,7 +46,9 @@ public class DatasetSplitter {
 		Utils.requireDir(m_featureSelectionDatasetPath);
 		Utils.requireDir(m_crossValidationDatasetPath);
 		Utils.requireDir(m_testSetDatasetPath);
-		Utils.requireDir(m_featureSelectionResultsPath);
+		
+		// Empty feature selection results only if we are performing it
+		Utils.requireDir(m_featureSelectionResultsPath, m_conf.m_doFeatureSelection);
 	}
 	
 	//
