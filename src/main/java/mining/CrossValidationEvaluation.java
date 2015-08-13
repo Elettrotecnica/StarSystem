@@ -60,9 +60,9 @@ public class CrossValidationEvaluation {
 		final String[] resultsFolderTokens = {m_conf.m_baseFolder, m_conf.m_crossValidationFolder, m_conf.m_resultsFolder, ""};
 		m_resultsFolder = Utils.join(resultsFolderTokens, m_conf.m_fileSeparator);
 		
-		// Empty results dirs
-		Utils.requireDir(m_datasetFolder);
-		Utils.requireDir(m_resultsFolder);
+		Utils.requireDir(m_datasetFolder, false);
+		// Empty results folder only if we are performing cross validation
+		Utils.requireDir(m_resultsFolder, m_conf.m_doCrossValidation);
 	}    
 
 	private File getOutputFile(final String dataset, final String nFeatures) {

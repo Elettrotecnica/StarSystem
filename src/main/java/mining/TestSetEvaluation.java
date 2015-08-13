@@ -245,7 +245,7 @@ public class TestSetEvaluation {
 		});
 	}
 	
-	private List<Future<Void>> experiment(final List<String[]> settings) throws Exception {
+	public List<Future<Void>> experiment(final List<String[]> settings) throws Exception {
 		final List<Future<Void>> queue = new ArrayList<Future<Void>>();
 		for (final String[] setting : settings) {
 			final String competition   = setting[0];

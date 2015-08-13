@@ -24,7 +24,11 @@ public class Analysis {
 		final DatasetSplitter sp = new DatasetSplitter(conf);
 		
 		sp.buildDatasets();
-		new FeatureSelection(conf).selection();
+		if (conf.m_doFeatureSelection) {
+			new FeatureSelection(conf).selection();
+		} else {
+			System.out.println("WARNING: reusing previous feature selection results");
+		}
 		sp.datasetAttributesFromReference();
 		new ModelSelection(conf).selection();
 	}

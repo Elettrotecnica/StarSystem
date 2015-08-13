@@ -64,6 +64,9 @@ public class Configuration {
 	public int m_nWrappers;
 	public int m_nClassifiers;
 	
+	public boolean m_doFeatureSelection;
+	public boolean m_doCrossValidation;
+	
 	public String crossValidationSelectedDatasetPath() {
 		final String[] pathTokens = {m_baseFolder, m_crossValidationFolder, m_datasetFolder, ""};
 		return Utils.join(pathTokens, m_fileSeparator);
@@ -78,16 +81,7 @@ public class Configuration {
 		m_fileSeparator = File.separator;
 		m_nThreads  = Runtime.getRuntime().availableProcessors();
 		m_random    = new Random(System.currentTimeMillis());
-		
-//		String[] datasetNames = {"IT1"};
-//		m_datasetNames = datasetNames;
-//		m_nDatasets    = datasetNames.length;
-//		
-//		int[] featureSelectionNFeatures = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-//		Arrays.sort(featureSelectionNFeatures);
-//		m_featureSelectionNFeatures  = featureSelectionNFeatures;
-//		m_nMaxFeatures               = featureSelectionNFeatures[featureSelectionNFeatures.length-1];
-		
+				
 		m_datasetNames = null;
 		m_nDatasets    = 0;
 		
@@ -100,8 +94,6 @@ public class Configuration {
 		m_crossValidationIterations = 10;
 		m_crossValidationFolds      = 10;
 		
-//		m_sortAttributeName  = "date";
-//		m_sliceAttributeName = "season";
 		m_sortAttributeName  = null;
 		m_sliceAttributeName = null;
 		m_attributesToRemove = new String[0];
@@ -116,9 +108,6 @@ public class Configuration {
 		String[] featureSelectionDatasetSlices = null;
 		String[] crossValidationDatasetSlices  = null;
 		String[] testSetDatasetSlices          = null;
-//		String[] featureSelectionDatasetSlices = {"2011", "2012"};
-//		String[] crossValidationDatasetSlices  = {"2011", "2012"};
-//		String[] testSetDatasetSlices          = {"2013"};
 		m_featureSelectionDatasetSlices = featureSelectionDatasetSlices;
 		m_crossValidationDatasetSlices  = crossValidationDatasetSlices;
 		m_testSetDatasetSlices          = testSetDatasetSlices;
@@ -129,6 +118,9 @@ public class Configuration {
 		m_crossValidationFolder  = "03-cross-validation";
 		m_testSetFolder          = "04-test-set";
 		m_resultsFolder          = "05-results";
+		
+		m_doFeatureSelection = true;
+		m_doCrossValidation  = true;
 	}
 	
 	private void setDefaultClassifiers() {
@@ -169,11 +161,6 @@ public class Configuration {
 		try {randomForest50.setOptions(weka.core.Utils.splitOptions(options));} catch (Exception e) {e.printStackTrace();}
 		m_classifiers.add(randomForest50);
 
-//		Classifier libsvm = new LibSVM();
-//		options = "-S 0 -K 2 -D 3 -G 0.0 -R 0.0 -N 0.5 -M 40.0 -C 1.0 -E 0.001 -P 0.1 -Z -seed 1";
-//		try {libsvm.setOptions(weka.core.Utils.splitOptions(options));} catch (Exception e) {e.printStackTrace();}
-//		CLASSIFIERS.add(libsvm);
-		
 		m_nClassifiers = m_classifiers.size();
 	}
 	
@@ -207,11 +194,6 @@ public class Configuration {
 		options = "-C 1.0 -L 0.001 -P 1.0E-12 -N 0 -V -1 -W 1 -K \"weka.classifiers.functions.supportVector.Puk -C 250007 -O 1.0 -S 1.0\"";
 		try {smoW.setOptions(weka.core.Utils.splitOptions(options));} catch (Exception e) {e.printStackTrace();}
 		m_wrappers.add(smoW);
-		
-//		final Classifier libsvm = new LibSVM();
-//		options = "-S 0 -K 2 -D 3 -G 0.0 -R 0.0 -N 0.5 -M 40.0 -C 1.0 -E 0.001 -P 0.1 -Z -seed 1";
-//		try {libsvm.setOptions(weka.core.Utils.splitOptions(options));} catch (Exception e) {e.printStackTrace();}
-//		WRAPPERS.add(libsvm);
 		
 		m_nWrappers = m_wrappers.size();
 	}
@@ -247,6 +229,12 @@ public class Configuration {
 			String[] classOptions;
 			
 		    switch (param) {
+	    		case "reuse_feature_selection":
+	    			m_doFeatureSelection = !value.equals("true");
+	    			break;
+	    		case "reuse_cross_validation":
+	    			m_doCrossValidation = !value.equals("true");
+	    			break;
 		    	case "separator":  
 		    		m_fileSeparator = value;
 		    		break;
@@ -383,37 +371,47 @@ public class Configuration {
 		}
 		reader.close();
 		
-		m_nFilters = m_filters.size();
-		if (m_nFilters == 0) {
-			System.out.print("WARNING: no filters specified. They won't be applied to feature selection.");
+		if (m_doFeatureSelection) {
+			m_nFilters = m_filters.size();
+			if (m_nFilters == 0) {
+				System.out.println("WARNING: no filters specified. They won't be applied to feature selection.");
+			}
+			m_nWrappers = m_wrappers.size();
+			if (m_nWrappers == 0) {
+				System.out.println("WARNING: no wrappers specified. They won't be applied to feature selection.");
+			}
+			
+			if (m_featureSelectionNFeatures == null) {
+				throw new Exception("No 'n_feature_selection_features' specified in configuration");
+			}
+			if (m_featureSelectionDatasetSlices == null) {
+				throw new Exception("No 'feature_selection_dataset_slices' specified in configuration");
+			}
+		} else {
+			m_filters.clear();  m_nFilters  = 0;
+			m_wrappers.clear(); m_nWrappers = 0;
 		}
-		m_nWrappers = m_wrappers.size();
-		if (m_nWrappers == 0) {
-			System.out.print("WARNING: no wrappers specified. They won't be applied to feature selection.");
+		
+		if (m_doCrossValidation) {
+			if (m_crossValidationDatasetSlices == null) {
+				throw new Exception("No 'cross_validation_dataset_slices' specified in configuration");
+			}			
 		}
+		
 		m_nClassifiers = m_classifiers.size();
 		if (m_nClassifiers == 0) {
 			setDefaultClassifiers();
-			System.out.print("WARNING: no classifiers specified. Using defaults.");
+			System.out.println("WARNING: no classifiers specified. Using defaults.");
 		}
 		
 		if (m_datasetNames == null) {
 			throw new Exception("No 'dataset' specified in configuration");
 		}		
-		if (m_featureSelectionNFeatures == null) {
-			throw new Exception("No 'n_feature_selection_features' specified in configuration");
-		}
 		if (m_sortAttributeName == null) {
 			throw new Exception("No 'sort_attribute_name' specified in configuration");
 		}
 		if (m_sliceAttributeName == null) {
 			throw new Exception("No 'slice_attribute_name' specified in configuration");
-		}
-		if (m_featureSelectionDatasetSlices == null) {
-			throw new Exception("No 'feature_selection_dataset_slices' specified in configuration");
-		}
-		if (m_crossValidationDatasetSlices == null) {
-			throw new Exception("No 'cross_validation_dataset_slices' specified in configuration");
 		}
 		if (m_testSetDatasetSlices == null) {
 			throw new Exception("No 'test_set_dataset_slices' specified in configuration");
