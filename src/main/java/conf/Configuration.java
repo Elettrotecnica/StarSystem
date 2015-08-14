@@ -250,15 +250,16 @@ public class Configuration {
 	    				m_datasetNames[i] = values[i].trim(); 
 	    			}
 		    		break;
-		    	case "n_feature_selection_features":
+		    	case "n_filter_features":
+		    		m_nMaxFeatures = Integer.parseInt(value);
+		    		break;
+		    	case "n_wrapper_features":
 		    		values = value.split(",");
 		    		nValues = values.length;
 		    		m_featureSelectionNFeatures = new int[nValues];
 		    		for (int i = 0; i < nValues; i++) {
 		    			m_featureSelectionNFeatures[i] = Integer.parseInt(values[i].trim()); 
-	    			}
-		    		Arrays.sort(m_featureSelectionNFeatures);
-		    		m_nMaxFeatures = m_featureSelectionNFeatures[nValues-1];
+	    			} ; Arrays.sort(m_featureSelectionNFeatures);
 		    		break;
 		    	case "n_feature_selection_iterations":  
 		    		m_featureSelectionIterations = Integer.parseInt(value);
@@ -372,6 +373,15 @@ public class Configuration {
 		reader.close();
 		
 		if (m_doFeatureSelection) {
+			if (m_featureSelectionNFeatures == null) {
+				throw new Exception("Number of wrapper features for feature selection not provided.");
+			}
+			final int maxWrapperFeatures = m_featureSelectionNFeatures[m_featureSelectionNFeatures.length-1];
+			if (m_nMaxFeatures < maxWrapperFeatures) {
+				System.out.println("WARNING: max number of features from filters not specified or invalid. Using max number of wrapper features.");
+				m_nMaxFeatures = maxWrapperFeatures;
+			}
+			
 			m_nFilters = m_filters.size();
 			if (m_nFilters == 0) {
 				System.out.println("WARNING: no filters specified. They won't be applied to feature selection.");
