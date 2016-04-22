@@ -18,7 +18,6 @@ import conf.Configuration;
 
 import utils.Utils;
 import weka.classifiers.Classifier;
-import weka.classifiers.rules.ZeroR;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -32,9 +31,9 @@ import weka.experiment.PropertyNode;
 import weka.experiment.ResultMatrix;
 import weka.experiment.ResultMatrixPlainText;
 
-// Classe che valuta i modelli ricevuti in input sui dataset 
-// suddivisi per numero di feature, restituendo tutte le combinazioni 
-// campionato/numero di feature/modello che superano la baseline ZeroR
+// Class evaluating every combination of features returned by feature 
+// selection against all the models configured in the experiment.
+// Its result will be a set of candidate configurations to be tested on the test set.
 public class CrossValidationEvaluation {
 	
 	final Configuration m_conf;
@@ -70,8 +69,8 @@ public class CrossValidationEvaluation {
 		return new File(Utils.join(pathTokens, m_conf.m_fileSeparator));
 	}
 	
-	// Il PairedTTester di weka mi toglie il namespace dalle classi nei risultati.
-	// Lo devo recuperare dal file originale in questo modo.
+	// Weka's PairedTTester removes class's namespace from its results.
+	// As a workaround I have to recover it using this method.
 	private String[][] getClassifiers (final Instances results) {
 		final Attribute classifiersAttr = results.attribute("Key_Scheme");
 		final Attribute optionsAttr     = results.attribute("Key_Scheme_options");
@@ -93,7 +92,7 @@ public class CrossValidationEvaluation {
 	}
 	
 	private List<String[]> getWinners(final String competition, final String nFeatures, final File outFile) throws Exception {
-	    // Leggo i risultati dell'esperimento...
+		// Read experiment's results
 	    final PairedCorrectedTTester tester = new PairedCorrectedTTester();
 	    final Instances result = Utils.readFile(outFile);
 	    tester.setInstances(result);
@@ -144,21 +143,21 @@ public class CrossValidationEvaluation {
 	    final String[][] methodsOriginalNames = getClassifiers(result);
 	    final int nMethods = methodsOriginalNames.length;
 
-	    // Recupero il risultato della baseline
+	    // Get baseline reults
     	final String baselineStdDev = Double.toString(matrix.getStdDev(0, 0));
     	final String baselineMean   = Double.toString(matrix.getMean(0, 0));
 
-	    // Scorro i risultati per ciascun modello...
+	    // Foreach model's results
 	    final List<String[]> winners = new ArrayList<String[]>();
 	    for (int i = 0; i < nMethods; i++) {
-	    	// ...se ho significativamente superato la baseline...
+	    	// ...if baseline was significantly outperformed...
 	    	if (matrix.getSignificance(i, 0) == ResultMatrix.SIGNIFICANCE_WIN) {
 		    	final String stdDev = Double.toString(matrix.getStdDev(i, 0));
 		    	final String mean   = Double.toString(matrix.getMean(i, 0));
 		    	final String[] method = methodsOriginalNames[i];
 	    		final String className = method[0];
 	    		final String options   = method[1];
-		    	// ...restituisco i modelli vincitori in uscita.
+		    	// ...forward this configuration to the next stage. 
 		    	final String[] r = {competition, nFeatures, className, options, mean, stdDev, baselineMean, baselineStdDev};
 		    	winners.add(r);
 	    	}
@@ -184,28 +183,26 @@ public class CrossValidationEvaluation {
 	private List<String[]> exp(final String competition, final String nFeatures, final List<Classifier> models) throws Exception {
 		final Experiment exp = new Experiment();
 		
-        // Imposto i dataset. Faccio subito perche' se non ne trovo ho gia' finito.
+		// Read datasets from files...
         final DefaultListModel<File> model = new DefaultListModel<File>();
         final String regexp = "^" + competition + ".*features" + nFeatures + ".arff$";
 		final FilenameFilter fileFilter = Utils.getFileFilter(regexp);
         final File dir = new File(m_datasetFolder);
-        // Aggiungo i dataset all'esperimento.
+        // ...and include them in the experiment.
         for (final File train : dir.listFiles(fileFilter)) {model.addElement(train);}
         if (model.size() == 0) return null;
         exp.setDatasets(model);
 		
-		// Imposto i classificatori dell'esperimento
-		// aggiungo la baseline ZeroR come primo classificatore 
-		// in modo che sia considerato la baseline di default
-		models.add(0, new ZeroR());
+        // Set classifiers for the experiment. Classifier n. 0 is the baseline
+		models.add(0, Classifier.makeCopy(m_conf.m_baselineClassifier));
 		exp.setPropertyArray(models.toArray());
 		exp.setUsePropertyIterator(true);
 		
-		// Imposto l'esperimento come classificazione
+		// Set the experiment as a classification experiment
 		final ClassifierSplitEvaluator se = new ClassifierSplitEvaluator();
 		final Class<? extends ClassifierSplitEvaluator> seClass = se.getClass();
 	    
-	    // Imposto l'esperimento in cross validation
+	    // Set the experiment as cross-validated and set number of folds
         final CrossValidationResultProducer cvrp = new CrossValidationResultProducer();
         final Class<? extends CrossValidationResultProducer> cvrpClass = cvrp.getClass();
         cvrp.setNumFolds(m_conf.m_crossValidationFolds);
@@ -220,11 +217,11 @@ public class CrossValidationEvaluation {
         exp.setResultProducer(cvrp);
         exp.setPropertyPath(propertyPath);
         
-        // Imposto il numero di iterazioni
+        // Set number of iterations for each experiment
         exp.setRunLower(1);
         exp.setRunUpper(m_conf.m_crossValidationIterations);
         		
-		// Imposto il file di output dell'esperimento
+		// Set output file for the experiment
 		final InstancesResultListener irl = new InstancesResultListener();
 		final File outFile = getOutputFile(competition, nFeatures);
 		if (outFile.exists()) {outFile.delete();}
@@ -240,10 +237,10 @@ public class CrossValidationEvaluation {
 	}
 	
 	private Future<List<String[]>> submitExp(final String dataset, final String nFeatures) throws Exception {
-		// Accodo l'esperimento nell'esecutore
+		// Queue experiments in the executor
 		return m_threadExecutor.submit(new Callable<List<String[]>>() {
 			public List<String[]> call() throws Exception {
-				// Uso copie dei classificatori per la thread safety
+				// To ensure thread safety, always copy the classifier, instead of passing by reference!
 				final List<Classifier> modelsCopy = new ArrayList<Classifier>(m_conf.m_nClassifiers);
 				for (final Classifier model: m_conf.m_classifiers) {modelsCopy.add(Classifier.makeCopy(model));}
 				return exp(dataset, nFeatures, modelsCopy);
@@ -251,10 +248,8 @@ public class CrossValidationEvaluation {
 		});
 	}
 	
-	// Il risultato dell'esperimento in CV e' una lista di future: non faccio aspettare l'esecuzione qui,
-	// ma passo direttamente la parola al consumatore dei risultati (leggasi - la valutazione sul test set -).
-	// In questo modo evito che il sistema resti senza nulla da fare mentre aspetta gli ultimi esperimenti in CV
-	// e vada direttamente ad iniziare le valutazioni sul test set che puo' gia' fare.
+	// CV experiments returns futures to the next phase: this way we don't have to wait for 
+	// every CV experiment to complete, for testing results we already have on the test set.
 	public List<Future<List<String[]>>> experiment() throws Exception {
 		final int nExperiments = m_conf.m_featureSelectionNFeatures.length * m_conf.m_nDatasets;
 		final List<Future<List<String[]>>> results = new ArrayList<Future<List<String[]>>>(nExperiments);

@@ -51,7 +51,8 @@ particular, as they are used to *sort* and to *slice* the dataset.
 
 ### Sorting and slicing the dataset
 
-Sorting feature is usually a date/time feature. When specified, it will cause 
+Sorting feature is usually a date/time feature. An example could
+be the date when a sample was collected. When specified, it will cause 
 the dataset to be sorted in increasing order. This is done to ensure we don't 
 incur in [data snooping](https://en.wikipedia.org/wiki/Data_dredging) during 
 test set evaluation, letting algorithms train on parts of the dataset in the 
@@ -78,11 +79,12 @@ of
 
 Informative filters are applied to the entire feature set and the worst features
 are removed, so we retain just the maximum number we choose (100 in our example). 
-This subset is then passed to wrappers. Each wrapper produces a ranking of the
-remaining features, and all of these rankings are aggregated by mean. Resulting
-aggregated ranking is used to sort features in the dataset, then produce a version
-of the best *n* features where *n* is a number specified in the configuration.
-In our example we will have subsets of the best 10, 20... 100 features.
+This subset is then passed to wrappers, that is, classifiers that will measure their
+accuracy on subsets of the features to find out which one proves itself most informative. 
+Each wrapper produces a ranking of the remaining features, and all of these rankings 
+are aggregated by mean. Resulting aggregated ranking is used to sort features in the 
+dataset, then produce a version of the best *n* features where *n* is a number specified 
+in the configuration. In our example we will have subsets of the best 10, 20... 100 features.
 
 Every subset of features so produced is used to create a feature-selected version
 of every *slice* of the dataset. This means we will have a 10 features version of 
@@ -92,8 +94,11 @@ cross-validation dataset and of test set, a 20 features version and so on.
 ### Cross validation evaluation
 
 Every combination of (Classifier/Set of features) is evaluated in cross 
-validation, together with a naive baseline assigning always the most frequent 
-class (Weka's ZeroR classifier). 
+validation against a baseline model. By default this is Weka's ZeroR,
+that assigns always the most frequent class to each sample, but a model
+of choice can be specified in the options. This allows also to benchmark
+our classifiers against a less trivial baseline to show which of them
+can be told *significantly* better.
 
 At the end of the evaluation, [paired-t test](https://en.wikipedia.org/wiki/Student's_t-test) is used to
 retrieve all combinations beating the baseline *significantly*. For each of them, StarSystem
@@ -132,14 +137,13 @@ available for inspection in final results folder.
 
 StarSystem allows to configure in great detail the general experimental flow 
 described above.
-User can decide which filters, wrappers and classifiers apply to the analysis, 
-and many parameters
-can be set, as the number of iteration during feature selection and number of 
-folds for cross-validation.
+User can decide which filters, wrappers, baseline and classifiers apply to 
+the analysis, and many parameters can be set, as the number of iteration 
+during feature selection and number of folds for cross-validation.
 
-The experiment can be conducted on many different datasets at a time, which, for 
-example, could belong to
-different national sport championships, or different populations of patients.
+The experiment can be conducted on many different datasets at a time, which, 
+for example, could belong to different national sport championships, or 
+different populations of patients.
 
 Evaluation measure can be chosen between accuracy, [precision, recall and f-measure](https://en.wikipedia.org/wiki/Precision_and_recall).
 
@@ -149,12 +153,13 @@ configuration file, containing comments about each option's usage.
 Typical steps to start playing with StarSystem are:
 1. Clone repo in your favorite directory
 2. Import StarSystem in [Eclipse](https://www.eclipse.org/)
-3. Include, either by source code or by jar file, the Weka library (3.6, current stable version)
+3. Include, either by source code or by jar file, the Weka library (3.6, current Debian version)
 4. Build a self contained jar file for the entire project
 5. Configure the experiment
 
-Be aware that only version 3.6 of Weka is supported, due to the many differences in class definition 
-introduced in version 3.7. Also know that Weka 3.6 suffered a bug between 3.6.11 and 3.6.12 affecting ranking 
+Be aware that only version 3.6 of Weka is supported. The idea is to keep pace with Debian, so when 
+a higher Debian version of Weka will be released, StarSystem will be updated.
+Also know that Weka 3.6 suffered a bug between 3.6.11 and 3.6.12 affecting ranking 
 of features exploited by StarSystem. For the best safety, please use 3.6 snapshot version of the 
 library or versions newer than 3.6.12.
 

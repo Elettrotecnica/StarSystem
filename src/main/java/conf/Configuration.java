@@ -17,6 +17,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.Logistic;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.SimpleLogistic;
+import weka.classifiers.rules.ZeroR;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 
@@ -56,6 +57,7 @@ public class Configuration {
 	
 //	public final String m_resultsFileName;
 	
+	public final Classifier         m_baselineClassifier;
 	public final List<Classifier>   m_classifiers = new ArrayList<Classifier>();
 	public final List<ASEvaluation> m_filters     = new ArrayList<ASEvaluation>();
 	public final List<Classifier>   m_wrappers    = new ArrayList<Classifier>();
@@ -199,6 +201,8 @@ public class Configuration {
 	}
 	
 	public Configuration() {
+		m_baselineClassifier = new ZeroR();
+		
 		setDefaultParameters();
 		setDefaultClassifiers();
 		setDefaultFilters();
@@ -208,6 +212,8 @@ public class Configuration {
 	public Configuration(final String confFilePath) throws Exception {
 		
 		setDefaultParameters();
+		
+		Classifier baselineClassifier = null;
 		
 		final BufferedReader reader = new BufferedReader(new FileReader(confFilePath));
 		String line = reader.readLine(); 
@@ -334,6 +340,16 @@ public class Configuration {
 		    	case "results_folder":  
 		    		m_resultsFolder = value;
 		    		break;
+		    	case "baseline":
+		    		classTokens = value.split(" ");
+		    		className = classTokens[0];
+		    		if (classTokens.length > 1) {
+			    		classOptions = weka.core.Utils.splitOptions(
+			    				value.substring(value.indexOf(" ")+1, value.length()).trim());
+		    		} else {
+		    			classOptions = null;
+		    		}
+		    		baselineClassifier = Classifier.forName(className, classOptions); 
 		    	case "classifier":  
 		    		classTokens = value.split(" ");
 		    		className = classTokens[0];
@@ -371,6 +387,11 @@ public class Configuration {
 		    line = reader.readLine(); 
 		}
 		reader.close();
+		
+		if (baselineClassifier == null) {
+			baselineClassifier = new ZeroR();
+		}
+		m_baselineClassifier = baselineClassifier;
 		
 		if (m_doFeatureSelection) {
 			if (m_featureSelectionNFeatures == null) {

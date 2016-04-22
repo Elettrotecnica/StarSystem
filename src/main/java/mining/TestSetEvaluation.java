@@ -15,7 +15,6 @@ import conf.Configuration;
 import utils.Utils;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.rules.ZeroR;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -28,9 +27,17 @@ public class TestSetEvaluation {
 	final String m_trainFolder;
 	final String m_testFolder;
 	final String m_resultsFolder;
+	
+	final String m_baselineName;
+	final String m_baselineOptions;
     
     public TestSetEvaluation(final Configuration conf, final ExecutorService threadExecutor) {
     	m_conf = conf;
+    	
+    	final Classifier baselineClassifier = m_conf.m_baselineClassifier;
+    	m_baselineName    = baselineClassifier.getClass().getName();
+    	m_baselineOptions = Utils.join(baselineClassifier.getOptions(), " ");
+    	
     	if (threadExecutor != null) {
     		m_threadExecutor = threadExecutor;
     	} else {
@@ -135,36 +142,36 @@ public class TestSetEvaluation {
 			//       - datasets have already been deprived from sorting attributes 
 			
 			// 3 avaluators for baseline, model with retrain, model without retrain
-			final Evaluation zeroREval     = eval(trainingSet, testSet, new ZeroR());
+			final Evaluation baselineEval     = eval(trainingSet, testSet, Classifier.makeCopy(m_conf.m_baselineClassifier));
 			final Evaluation noRetrainEval = eval(trainingSet, testSet, model);
 			final Evaluation retrainEval   = evalOneOne(trainingSet, testSet, model);
 			
-			final double zeroRPerformance;
+			final double baselinePerformance;
 			final double noRetrainPerformance;
 			final double retrainPerformance;
 		    switch (m_conf.m_evaluationMeasure) {
 		    	case "accuracy":  
-					zeroRPerformance = zeroREval.pctCorrect();
+					baselinePerformance = baselineEval.pctCorrect();
 					noRetrainPerformance = noRetrainEval.pctCorrect();
 					retrainPerformance = retrainEval.pctCorrect();
 		    		break;
 		    	case "precision":  
-					zeroRPerformance = zeroREval.weightedPrecision();
+					baselinePerformance = baselineEval.weightedPrecision();
 					noRetrainPerformance = noRetrainEval.weightedPrecision();
 					retrainPerformance = retrainEval.weightedPrecision();
 		    		break;
 		    	case "recall":  
-					zeroRPerformance = zeroREval.weightedRecall();
+					baselinePerformance = baselineEval.weightedRecall();
 					noRetrainPerformance = noRetrainEval.weightedRecall();
 					retrainPerformance = retrainEval.weightedRecall();
 		    		break;
 		    	case "f-measure":  
-					zeroRPerformance = zeroREval.weightedFMeasure();
+					baselinePerformance = baselineEval.weightedFMeasure();
 					noRetrainPerformance = noRetrainEval.weightedFMeasure();
 					retrainPerformance = retrainEval.weightedFMeasure();
 		    		break;
 		    	default :  
-					zeroRPerformance = zeroREval.pctCorrect();
+					baselinePerformance = baselineEval.pctCorrect();
 					noRetrainPerformance = noRetrainEval.pctCorrect();
 					retrainPerformance = retrainEval.pctCorrect();
 	    			System.out.println("WARNING Unrecognized evaluation mesure. Using Accuracy as default.");
@@ -173,11 +180,11 @@ public class TestSetEvaluation {
 			
 			// Does model without retrain outperform baseline?
 			final boolean noRetrainOutperformsBaseline = 
-					noRetrainPerformance > zeroRPerformance && Math.abs(noRetrainPerformance - CVPerformance) <= CVStdDev;
+					noRetrainPerformance > baselinePerformance && Math.abs(noRetrainPerformance - CVPerformance) <= CVStdDev;
 					
 			// Does model with retrain outperform baseline?
 			final boolean retrainOutperformsBaseline = 
-					retrainPerformance > zeroRPerformance && Math.abs(retrainPerformance - CVPerformance) <= CVStdDev;
+					retrainPerformance > baselinePerformance && Math.abs(retrainPerformance - CVPerformance) <= CVStdDev;
 
 			// We are only keeping results that outperform baseline significantly somehow
 			if (noRetrainOutperformsBaseline || retrainOutperformsBaseline) {
@@ -207,6 +214,8 @@ public class TestSetEvaluation {
 				writer.println("## Training set      : " + trainFileName);
 				writer.println("## Test set          : " + testFileName);
 				writer.println("## N. Features       : " + nFeatures);
+				writer.println("## Baseline          : " + m_baselineName);
+				writer.println("## Baseline Options  : " + m_baselineOptions);
 				writer.println("## Model             : " + modelName);
 				writer.println("## Model Options     : " + Utils.join(model.getOptions(), " "));
 				writer.println("## Measure           : " + m_conf.m_evaluationMeasure);
@@ -214,7 +223,7 @@ public class TestSetEvaluation {
 				writer.println("## CV Baseline       : " + CVBaselinePerformance + " +/- " + CVBaselineStdDev);
 				writer.println("## Train cardinality : " + nTrainInstances);
 				writer.println("## Test cardinality  : " + nTestInstances);
-				writer.println("## This Baseline     : " + zeroRPerformance);
+				writer.println("## This Baseline     : " + baselinePerformance);
 				writer.println("## With Retrain      : " + retrainPerformance);
 				writer.println("## Without Retrain   : " + noRetrainPerformance);
 				writer.println("###############################");
@@ -237,7 +246,7 @@ public class TestSetEvaluation {
 			final double CVStdDev,
 			final double CVBaselinePerformance,
 			final double CVBaselineStdDev) throws Exception {		
-		// Accodo l'esperimento nell'esecutore
+		// Queue experiment in the executor
 		return m_threadExecutor.submit(new Callable<Void>() {
 			public Void call() throws Exception {
 				return exp(competition, nFeatures, modelName, modelOptions, CVPerformance, CVStdDev, CVBaselinePerformance, CVBaselineStdDev);
@@ -277,15 +286,15 @@ public class TestSetEvaluation {
 		final Configuration conf = new Configuration();
 		final CrossValidationEvaluation cv = new CrossValidationEvaluation(conf);
 		final ExecutorService threadExecutor = cv.m_threadExecutor;
-		// Passo all'esperimento lo stesso esecutore di quello in CV, in modo che accodino le esecuzioni assieme 
+		// We always pass the same executor object to all the phases, so it will queue everything together 
 		final TestSetEvaluation pe = new TestSetEvaluation(conf, threadExecutor);
-		// Cerco di recuperare i risultati CV gia' esistenti
+		// See if we already have CV results...
 		try {
 			final List<String[]> winners = cv.getWinners();
 			System.out.println("...Using pre-existent CV results");
 			for (final Future<Void> done : pe.experiment(winners)) {done.get();}
 		}
-		// ...altrimenti eseguo l'esperimento in CV.
+		// ...or get them by executing the experiment.
 		catch (Exception e) {
 			pe.incrementalExperiment(cv.experiment());
 		}
