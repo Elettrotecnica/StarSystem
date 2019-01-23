@@ -98,8 +98,15 @@ public class FeatureSelection {
 		
 		protected double[][] getRankedAttributes() throws Exception {
 			m_meta.SelectAttributes(m_data);
-			final double[][] rankedAttributes = m_meta.rankedAttributes(); 
-			Utils.sortByValue(rankedAttributes);
+			final double[][] rankedAttributes = m_meta.rankedAttributes();
+			// Merit score assigned by the search class might not be intended as
+			// an absolute score, but as the combined merit of feature set so
+			// far. We replace the merit score with the reverse ranking
+			// position, in order to use it as an absolute merit.
+			for(int i = 0; i < rankedAttributes.length; i++) {
+			    rankedAttributes[i][1] = rankedAttributes.length - i;}
+			// Attributes are already sorted by definition...
+			// Utils.sortByValue(rankedAttributes);
 			return rankedAttributes;
 		}
 	}
