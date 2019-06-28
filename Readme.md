@@ -70,9 +70,9 @@ feature will be removed after it has been used.
 
 ### Feature selection
 
-Once dataset has been sorted and sliced, feature selection starts. User must 
-decide what is the maximum number of features he wants to retain in the dataset 
-and the number of subsets he wants to create. If, for example, we have a total 
+Once dataset has been sorted and sliced, feature selection starts. Users must 
+decide what is the maximum number of features they wants to retain in the dataset 
+and the number of subsets they wants to create. If, for example, we have a total 
 of
 400 features, we can decide to select the best 100, in subsets of 10, 20, 30... 
 100 features.
