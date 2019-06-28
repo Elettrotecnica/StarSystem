@@ -174,7 +174,7 @@ java -Xmx<fair-amount-of-memory> -jar StarSystem.jar <conf-file>
 ```
 ...and wait! Entire process, especially feature selection's wrappers, can be VERY time and memory
 consuming, depending on the number of features and numerosity of the dataset. Also, use of 
-computationally expensive models can change greatly time requirements. Please be patient, or 
+computationally expensive models have a big impact on time requirements. Please be patient, or 
 set for a less demanding setup for your experiment. This said, StarSystem exploits Java's native 
 parallelism and benefits greatly of multi-core execution environments.
 
