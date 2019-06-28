@@ -1,9 +1,9 @@
 #
-### Genera un report csv dai risultati della model selection
+### Generates a csv summary from experiment results
 #
 
 ##
-# Parametri 
+# Parameters 
 ##
 
 set input_files_pattern "04-test-set/05-results/*-Prediction-*.txt"
@@ -16,8 +16,7 @@ set under_baseline_results_p f
 # Helpers
 ##
 
-# Scrive la lista in ingresso nel file in uscita, in 
-# formato csv, effettuando le conversioni del caso
+# Outputs a formatted csv line
 proc write_as_csv {line} {
   global separator wfd
   set l {}
